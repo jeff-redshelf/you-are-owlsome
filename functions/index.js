@@ -13,6 +13,15 @@ exports.addMessage = functions.https.onRequest((req, res) => {
   // Push the new message into the Realtime Database using the Firebase Admin SDK.
   return admin.database().ref('/messages').push({original: original}).then((snapshot) => {
     // Redirect with 303 SEE OTHER to the URL of the pushed object in the Firebase console.
-    return res.redirect(303, snapshot.ref.toString());
+    // return res.redirect(303, snapshot.ref.toString());
+    return req.post(
+      "https://hooks.slack.com/services/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)",
+      { json: 
+        { 
+          text: 'message received'
+        } 
+      }
   });
 });
+
+
