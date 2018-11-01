@@ -17,10 +17,9 @@ exports.addMessage = functions.https.onRequest((req, res) => {
     return req.post(
       "https://hooks.slack.com/services/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)",
       { json: 
-        { 
-          text: 'message received'
-        } 
+        { text: 'message received'} 
       }
+    )
   });
 });
 
