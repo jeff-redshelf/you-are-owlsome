@@ -52,8 +52,8 @@ export const add_message = functions.https.onRequest(async (request, response) =
   }
 
   if (request.body.event && request.body.event.type === 'message') {
-    await admin.database().ref('messages').push(request.body);
-    return response.status(200);
+    admin.database().ref('messages').push(request.body);
+    return response.status(200).send();
   }
 
   if (request.body.challenge) {
@@ -62,17 +62,13 @@ export const add_message = functions.https.onRequest(async (request, response) =
     });
   }
   
-  return response.status(200);
+  return response.status(200).send();
 });
 
-export const process_message = functions.database.ref('messages/{id}').onWrite(async (event: any) => {
-  if (!event.data.exists()) {
-    return;
-  }
+export const process_message = functions.database.ref('messages/{id}').onCreate(async (snapshot, context) => {
+  const message = snapshot.val();
 
-  await event.data.ref.remove();
-
-  const message = event.data.val();
+  await snapshot.ref.remove();
 
   const installationRef = admin.database().ref("installations").child(message.team_id);
   const installation = (await installationRef.once("value")).val();
@@ -83,7 +79,7 @@ export const process_message = functions.database.ref('messages/{id}').onWrite(a
   if (containsOwl) {
     const re_mentions = /<(.*?)>/;
     const mentions = messageText.match(re_mentions);
-    await admin.database().ref("owls").child(event.params.id).set({
+    await admin.database().ref("owls").child(message.event_id).set({
       created_date: admin.database.ServerValue.TIMESTAMP,
       team: message.team_id,
       sent_by: message.event.user,
@@ -99,11 +95,11 @@ export const sendOwl = functions.https.onRequest((request, response) => {
       return response.status(405).send("Only POST requests are accepted");
   }
   
-  let messageText = request.body.text
-  let firstSpace = messageText.indexOf(' ')
-  let mention = messageText.slice(0, firstSpace)
-  let text = messageText.slice(firstSpace + 1)
-  let currentUser = request.body.user_id
+  const messageText = request.body.text
+  const firstSpace = messageText.indexOf(' ')
+  const mention = messageText.slice(0, firstSpace)
+  const text = messageText.slice(firstSpace + 1)
+  const currentUser = request.body.user_id
 
   return admin.database().ref("messages").push(request.body).then(()=> {
     console.log(request);
